@@ -1,7 +1,11 @@
 pipeline {
     agent any
+    parameters {
+        string(name: 'DEPLOY_ENV', defaultValue: 'dev', description: 'Environment to deploy')
+    }
     environment {
-        imageName = "kalki2878/react-js-app:2.0"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        imageName = "kalki2878/react-js-app:${env.BUILD_NUMBER}"
     }
     stages {
         stage("test") {
@@ -33,6 +37,12 @@ pipeline {
                     echo "Deploying the application..."
                 }
             }
+        }
+    }
+    post {
+        always {
+            // Archive artifacts such as test results and logs if present
+            archiveArtifacts artifacts: '**/test-results/**, **/logs/**', allowEmptyArchive: true
         }
     }
 }
