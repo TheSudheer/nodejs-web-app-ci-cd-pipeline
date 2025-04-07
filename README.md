@@ -11,7 +11,7 @@ To demonstrate a functional CI/CD workflow suitable for modern web application d
 
 ## Proof of Execution (Screenshots)
 
-*As requested for the interview task, below are proofs of a successful pipeline execution and the running application.*
+*Below are proofs of a successful pipeline execution and the running application.*
 
 ### 1. Jenkins Build Success
 
