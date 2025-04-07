@@ -57,13 +57,13 @@ Before running this pipeline, ensure that you have the following set up:
 6. **AWS EC2 Instance:**
    - An EC2 instance running a Linux distribution (e.g., Ubuntu).
    - Docker installed and running on the EC2 instance.
-   - The EC2 instance's security group must allow inbound traffic on port 3080 (or the port your application uses) and port 22 (for SSH).
+   - The EC2 instance's security group must allow inbound traffic on port 3080 (or the port our application uses) and port 22 (for SSH).
 
 7. **Jenkins Credentials:**
    - **`docker-hub-credentials`:**  
-     Jenkins Username/Password credential type containing your Docker Hub username and password (or access token).
+     Jenkins Username/Password credential type containing our Docker Hub username and password (or access token).
    - **`ec2-server-key`:**  
-     Jenkins SSH Username with private key credential type containing the private key for SSH access to the EC2 instance, associated with the `ubuntu` user (or the user configured on your EC2).
+     Jenkins SSH Username with private key credential type containing the private key for SSH access to the EC2 instance, associated with the `ubuntu` user (or the user configured on our EC2).
 
 ---
 
@@ -93,7 +93,7 @@ The pipeline executes the following stages sequentially:
    - Prints a message indicating that testing is starting.
    - Executes `npm test` within the project directory.
    - Uses `CI=true` to signal that tests are running in a non-interactive CI environment.
-   - The `|| true` at the end of the command causes the stage to pass even if the tests fail (for demonstration purposes). In a production pipeline, you might remove this to enforce passing tests.
+   - The `|| true` at the end of the command causes the stage to pass even if the tests fail (for demonstration purposes). In a production pipeline, we might remove this to enforce passing tests.
 
 2. **Docker Build**
    - Builds a Docker image using the `Dockerfile` located in the workspace root (`.`).
@@ -138,9 +138,6 @@ The pipeline executes the following stages sequentially:
 3. **Save the Jenkins Job Configuration.**
 
 4. **Trigger a Build:**
-   - Click **"Build Now"** (or **"Build with Parameters"** if you want to change `DEPLOY_ENV`, although it is not used in this configuration).
-
-5. **Monitor Pipeline Execution:**
-   - Observe the pipeline execution using the Jenkins UI (Blue Ocean or the standard stage view).
-
+   - Click **"Build Now"** (or **"Build with Parameters"** if you want to change `DEPLOY_ENV`).
 ---
+
