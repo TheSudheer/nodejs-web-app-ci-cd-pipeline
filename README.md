@@ -17,13 +17,13 @@ To demonstrate a functional CI/CD workflow suitable for modern web application d
 
 *Description: This screenshot shows the Jenkins pipeline view, indicating that all stages (Test, Docker Build, Push to DockerHub, Deploy to EC2-Server) completed successfully.*
 
-![Jenkins Build Success](/home/sudheer/nodejs-web-app-ci-cd-pipeline/screenshots/jenkins_success_screenshot.png)
+![Jenkins Build Success](screenshots/jenkins_success_screenshot.png)
 
 ### 2. Running Web Application on EC2
 
 *Description: This screenshot shows the React application successfully running and accessible via a web browser, served from the EC2 instance on port 3080.*
 
-![Running Web Application on EC2](/home/sudheer/nodejs-web-app-ci-cd-pipeline/screenshots/webapp_running_screenshot.png)
+![Running Web Application on EC2](screenshots/webapp_running_screenshot.png)
 
 ---
 
