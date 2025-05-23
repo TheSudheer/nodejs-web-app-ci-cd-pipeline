@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  labels:
+    app: ${APP_NAME}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app: ${APP_NAME}
+    spec:
+      imagePullSecrets:
+        - name: aws-registry-key
+      containers:
+        - name: ${APP_NAME}
+          image: ${AWS_ECR_REPO}:${imageName}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3080
+          env:
+            - name: DATABASE_URL
+              value: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_SERVICE_NAME}:5432/${POSTGRES_DB}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  labels:
+    app: ${APP_NAME}
+spec:
+  type: LoadBalancer   # or ClusterIP if I don’t need external LB
+  selector:
+    app: ${APP_NAME}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3080
+
