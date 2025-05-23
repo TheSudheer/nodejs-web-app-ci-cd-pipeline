@@ -15,11 +15,9 @@ pipeline {
         timeout(time: 10, unit: 'MINUTES')
     }
     environment {
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
-        imageName = "kalki2878/react-js-app:${env.BUILD_NUMBER}"
         AWS_ECR_SERVER = "710271936636.dkr.ecr.ap-south-1.amazonaws.com"
-        AWS_ECR_REPO = "${AWS_ECR_SERVER}/react_js_app"
-        //imageName = "latest"
+        AWS_ECR_REPO = "710271936636.dkr.ecr.ap-south-1.amazonaws.com/react_js_app"
+        imageName = "latest"
     }
     stages {
 
