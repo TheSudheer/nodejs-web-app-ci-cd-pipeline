@@ -34,19 +34,19 @@ spec:
       volumes:
         - name: db-data
           persistentVolumeClaim:
-            claimName: db_vpc
+            claimName: db-vpc
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: db_service
+  name: mysql-db
   labels:
-    app: db_service
+    app: mysql-db
 spec:
   type: ClusterIP
   selector:
-    app: db_service
+    app: mysql-db
   ports:
     - protocol: TCP
       port: 5432
@@ -56,7 +56,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: db_pvc
+  name: db-pvc
 spec:
   accessModes:
     - ReadWriteOnce
