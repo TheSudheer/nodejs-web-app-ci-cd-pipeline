@@ -53,7 +53,7 @@ pipeline {
                             export AWS_DEFAULT_REGION=ap-south-1
 
                             echo "Updating kubeconfig for cluster demo-cluster-3..."
-                            aws eks update-kubeconfig --region=ap-south-1 --name=demo-cluster-3
+                            aws eks update-kubeconfig --region=ap-southeast-1 --name=demo-cluster-3
 
                             echo "Listing Kubernetes nodes..."
                             kubectl get nodes
