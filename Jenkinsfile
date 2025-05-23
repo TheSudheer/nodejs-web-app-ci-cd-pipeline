@@ -1,48 +1,94 @@
+#!/usr/bin/env groovy
+library identifier: 'devops-shared-lib@master', retriever: modernSCM(
+    [
+        $class: 'GitSCMSource',
+        remote: 'https://github.com/TheSudheer/Jenkins-shared-library.git',
+        credentialsId: 'GitHub'
+    ]
+)
+
+
 pipeline {
     agent any
-    parameters {
-        string(name: 'DEPLOY_ENV', defaultValue: 'dev', description: 'Environment to deploy')
+    
+    options {
+        timeout(time: 10, unit: 'MINUTES')
     }
     environment {
         IMAGE_TAG = "${env.BUILD_NUMBER}"
         imageName = "kalki2878/react-js-app:${env.BUILD_NUMBER}"
+        AWS_ECR_SERVER = "710271936636.dkr.ecr.ap-south-1.amazonaws.com"
+        AWS_ECR_REPO = "${AWS_ECR_SERVER}/react_js_app"
+        //imageName = "latest"
     }
     stages {
-        stage("test") {
+
+        stage("build image") {
             steps {
                 script {
-                    echo "Testing the application..."
-                    sh "CI=true npm test || true"
+                    echo "Starting build image stage"
+                    timeout(time: 3, unit: 'MINUTES') {
+                        aws_Ecr(env.AWS_ECR_REPO, env.imageName)
+                    // This piece of code was written using the jenkins-shared-library from:
+                    // https://github.com/TheSudheer/Jenkins-shared-library.git
+                    }
+                    echo "Finished build image stage"
                 }
             }
         }
-        stage('Docker Build') {
+        stage("Configure Kubeconfig and Test Connectivity") {
             steps {
-                sh "docker build -t ${imageName} ."
+                echo "Starting Configure Kubeconfig and Test Connectivity stage"
+                withCredentials([
+                    string(credentialsId: 'jenkins_aws_access_key_id', variable: 'AWS_ACCESS_KEY_ID'),
+                    string(credentialsId: 'jenkins_aws_secret_access_key', variable: 'AWS_SECRET_ACCESS_KEY')
+                ]) {
+                    timeout(time: 3, unit: 'MINUTES') {
+                        sh '''
+                            set -x
+                            echo "Verifying AWS CLI version..."
+                            aws --version
+
+                            echo "Setting AWS_DEFAULT_REGION to ap-southeast-1..."
+                            export AWS_DEFAULT_REGION=ap-south-1
+
+                            echo "Updating kubeconfig for cluster demo-cluster-3..."
+                            aws eks update-kubeconfig --region=ap-south-1 --name=demo-cluster-3
+
+                            echo "Listing Kubernetes nodes..."
+                            kubectl get nodes
+                            set +x
+                        '''
+                    }
+                }
+                echo "Finished Configure Kubeconfig and Test Connectivity stage"
             }
         }
-        stage('Push to DockerHub Registry') {
+        stage("deploy") {
+            environment {
+                AWS_ACCESS_KEY_ID = credentials('jenkins_aws_access_key_id')
+                AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
+                APP_NAME = 'react-js-app'
+                IMAGE_NAME = "${env.imageName}"
+            }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-                    sh "echo $DOCKER_PASSWORD | docker login -u ${DOCKER_USERNAME} --password-stdin"
-                    sh "docker push ${imageName}"
+                script {
+                    echo "Starting deploy stage"
+                    timeout(time: 3, unit: 'MINUTES') {
+                        sh '''
+                            set -x
+                            echo "Deploying using kubernetes/deployment.yaml..."
+                            envsubst < kubernetes/deployment.yaml | kubectl apply -f -
+
+                            echo "Deploying using kubernetes/service.yaml..."
+                            envsubst < kubernetes/service.yaml | kubectl apply -f -
+                            set +x
+                        '''
+                    }
+                    echo "Finished deploy stage"
                 }
             }
-        }
-        stage('Deploy to EC2-Server') {
-            steps {
-                sshagent(['ec2-server-key']) {
-                    // Pull the latest image and run a new container
-                    sh "ssh -o StrictHostKeyChecking=no ubuntu@18.142.239.7 'docker pull ${imageName} && docker run -d --name myapp -p 3080:3080 ${imageName}'"
-                    echo "Deploying the application..."
-                }
-            }
-        }
-    }
-    post {
-        always {
-            // Archive artifacts such as test results and logs if present
-            archiveArtifacts artifacts: '**/test-results/**, **/logs/**', allowEmptyArchive: true
         }
     }
 }
+
