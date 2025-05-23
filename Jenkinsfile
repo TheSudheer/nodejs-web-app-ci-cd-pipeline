@@ -78,10 +78,10 @@ pipeline {
                         sh '''
                             set -x
                             echo "Deploying using kubernetes/deployment.yaml..."
-                            envsubst < kubernetes/deployment.yaml | kubectl apply -f -
+                            envsubst < kubernetes/app-deployment.yml | kubectl apply -f -
 
                             echo "Deploying using kubernetes/service.yaml..."
-                            envsubst < kubernetes/service.yaml | kubectl apply -f -
+                            envsubst < kubernetes/db.yaml | kubectl apply -f -
                             set +x
                         '''
                     }
