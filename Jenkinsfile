@@ -1,22 +1,14 @@
 #!/usr/bin/env groovy
-library identifier: 'devops-shared-lib@master', retriever: modernSCM(
-    [
-        $class: 'GitSCMSource',
-        remote: 'https://github.com/TheSudheer/Jenkins-shared-library.git',
-        credentialsId: 'GitHub'
-    ]
-)
-
 
 pipeline {
     agent any
     
     options {
-        timeout(time: 10, unit: 'MINUTES')
+        timeout(time: 50, unit: 'MINUTES')
     }
     environment {
-        AWS_ECR_SERVER = "710271936636.dkr.ecr.ap-south-1.amazonaws.com"
-        AWS_ECR_REPO = "710271936636.dkr.ecr.ap-south-1.amazonaws.com/react_js_app"
+        AWS_ECR_SERVER = "710271936636.dkr.ecr.ap-south-1.amazonaws.com" //replace this with your AWS ECR REPO
+        AWS_ECR_REPO = "710271936636.dkr.ecr.ap-south-1.amazonaws.com/react_js_app" //replace this with your AWS ECR REPO
         imageName = "latest"
     }
     stages {
@@ -25,15 +17,33 @@ pipeline {
             steps {
                 script {
                     echo "Starting build image stage"
-                    timeout(time: 3, unit: 'MINUTES') {
-                        aws_Ecr(env.AWS_ECR_REPO, env.imageName)
-                    // This piece of code was written using the jenkins-shared-library from:
-                    // https://github.com/TheSudheer/Jenkins-shared-library.git
+                    timeout(time: 5, unit: 'MINUTES') {
+                        echo 'Building the docker image and pushing it to AWS ECR...'
+                        withCredentials([usernamePassword(credentialsId: 'ecr-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                            sh "docker build -t ${AWS_ECR_REPO}:${imageName} ."
+                            sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin ${AWS_ECR_SERVER}"
+                            sh "docker push ${AWS_ECR_REPO}:${imageName}"
+                        }
                     }
                     echo "Finished build image stage"
                 }
             }
         }
+        stage("Provision Server") {
+            environment {
+                AWS_ACCESS_KEY_ID     = credentials("jenkins_aws_access_key_id")
+                AWS_SECRET_ACCESS_KEY = credentials("jenkins_aws_secret_access_key")
+            }
+            steps {
+                script {
+                    dir("terraform-eks-cluster") {
+                        sh "terraform init"
+                        sh "terraform apply --auto-approve"
+                    }
+                }
+            }
+        }
+
         stage("Configure Kubeconfig and Test Connectivity") {
             steps {
                 echo "Starting Configure Kubeconfig and Test Connectivity stage"
@@ -51,7 +61,7 @@ pipeline {
                             export AWS_DEFAULT_REGION=ap-south-1
 
                             echo "Updating kubeconfig for cluster demo-cluster-3..."
-                            aws eks update-kubeconfig --region=ap-southeast-1 --name=demo-cluster-3
+                            aws eks update-kubeconfig --region=ap-southeast-1 --name=myapp-eks-cluster
 
                             echo "Listing Kubernetes nodes..."
                             kubectl get nodes
