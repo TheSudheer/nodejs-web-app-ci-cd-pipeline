@@ -7,19 +7,22 @@ pipeline {
         timeout(time: 50, unit: 'MINUTES')
     }
     environment {
-        AWS_ECR_SERVER = "710271936636.dkr.ecr.ap-south-1.amazonaws.com" //replace this with your AWS ECR REPO
-        AWS_ECR_REPO = "710271936636.dkr.ecr.ap-south-1.amazonaws.com/react_js_app" //replace this with your AWS ECR REPO
-        imageName = "latest"
+        AWS_ECR_SERVER = "710271936636.dkr.ecr.ap-south-1.amazonaws.com" // Replace with your AWS ECR server
+        AWS_ECR_REPO   = "710271936636.dkr.ecr.ap-south-1.amazonaws.com/react_js_app" // Replace with your AWS ECR repo
+        imageName      = "latest"
     }
     stages {
-
         stage("build image") {
             steps {
                 script {
                     echo "Starting build image stage"
                     timeout(time: 5, unit: 'MINUTES') {
                         echo 'Building the docker image and pushing it to AWS ECR...'
-                        withCredentials([usernamePassword(credentialsId: 'ecr-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                        withCredentials([usernamePassword(
+                            credentialsId: 'ecr-credentials', 
+                            passwordVariable: 'DOCKER_PASSWORD', 
+                            usernameVariable: 'DOCKER_USERNAME'
+                        )]) {
                             sh "docker build -t ${AWS_ECR_REPO}:${imageName} ."
                             sh "echo ${DOCKER_PASSWORD} | docker login -u ${DOCKER_USERNAME} --password-stdin ${AWS_ECR_SERVER}"
                             sh "docker push ${AWS_ECR_REPO}:${imageName}"
@@ -43,7 +46,6 @@ pipeline {
                 }
             }
         }
-
         stage("Configure Kubeconfig and Test Connectivity") {
             steps {
                 echo "Starting Configure Kubeconfig and Test Connectivity stage"
@@ -61,7 +63,7 @@ pipeline {
                             export AWS_DEFAULT_REGION=ap-south-1
 
                             echo "Updating kubeconfig for cluster demo-cluster-3..."
-                            aws eks update-kubeconfig --region=ap-southeast-1 --name=myapp-eks-cluster
+                            aws eks update-kubeconfig --region=ap-south-1 --name=myapp-eks-cluster
 
                             echo "Listing Kubernetes nodes..."
                             kubectl get nodes
@@ -74,24 +76,35 @@ pipeline {
         }
         stage("deploy") {
             environment {
-                AWS_ACCESS_KEY_ID = credentials('jenkins_aws_access_key_id')
+                AWS_ACCESS_KEY_ID     = credentials('jenkins_aws_access_key_id')
                 AWS_SECRET_ACCESS_KEY = credentials('jenkins_aws_secret_access_key')
-                APP_NAME = 'react-js-app'
-                IMAGE_NAME = "${env.imageName}"
+                APP_NAME              = 'django-app'
+                IMAGE_NAME            = "${env.imageName}"
+                AWS_ECR_SERVER        = "710271936636.dkr.ecr.ap-south-1.amazonaws.com"
             }
             steps {
                 script {
-                    echo "Starting deploy stage"
-                    timeout(time: 3, unit: 'MINUTES') {
-                        sh '''
-                            set -x
-                            echo "Deploying using kubernetes/deployment.yaml..."
-                            envsubst < kubernetes/app-deployment.yml | kubectl apply -f -
+                    withCredentials([usernamePassword(
+                        credentialsId: 'ecr-credentials', 
+                        passwordVariable: 'DOCKER_PASSWORD', 
+                        usernameVariable: 'DOCKER_USERNAME'
+                    )]) {
+                        echo "Starting deploy stage"
+                        timeout(time: 8, unit: 'MINUTES') {
+                            sh '''
+                                set -x
+                                echo "Deploying kubernetes/db.yml..."
+                                envsubst < kubernetes/db.yml | kubectl apply -f -
 
-                            echo "Deploying using kubernetes/service.yaml..."
-                            envsubst < kubernetes/db.yaml | kubectl apply -f -
-                            set +x
-                        '''
+                                echo "Deploying kubernetes/secret.yml..."
+                                envsubst < kubernetes/secret.yml | kubectl apply -f -
+
+                                echo "Deploying kubernetes/deployment.yaml..."
+                                envsubst < kubernetes/app-deployment.yml | kubectl apply -f -
+
+                                set +x
+                            '''
+                        }
                     }
                     echo "Finished deploy stage"
                 }
@@ -99,4 +112,3 @@ pipeline {
         }
     }
 }
-

@@ -19,14 +19,13 @@ spec:
         - name: aws-registry-key
       containers:
         - name: ${APP_NAME}
-          image: ${AWS_ECR_REPO}:${imageName}
+          image: "${AWS_ECR_REPO}:${imageName}"
           imagePullPolicy: Always
           ports:
             - containerPort: 3080
           env:
             - name: DATABASE_URL
-              value: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_SERVICE_NAME}:5432/${POSTGRES_DB}
-
+              value: "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@${DB_SERVICE_NAME}:3306/${MYSQL_DATABASE}"
 ---
 apiVersion: v1
 kind: Service
@@ -35,11 +34,11 @@ metadata:
   labels:
     app: ${APP_NAME}
 spec:
-  type: LoadBalancer   # or ClusterIP if I don’t need external LB
+  type: LoadBalancer
   selector:
     app: ${APP_NAME}
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: 3080
-
